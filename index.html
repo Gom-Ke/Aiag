@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Angličtina Pro Live</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-50 font-sans pb-24 antialiased">
+
+    <!-- HLAVIČKA -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">AI English Tutor</h1>
+        <span class="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full font-mono font-semibold">GEMINI LIVE</span>
+    </header>
+
+    <main class="max-w-md mx-auto p-4">
+        
+        <!-- ================= SEKCE 1: SLOVÍČKA ================= -->
+        <div id="section-words" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Top Slovíčka & Vety</h2>
+                <button onclick="resetMastered()" class="text-xs text-rose-400 hover:underline flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Reset</button>
+            </div>
+            <div id="flashcard-container" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl min-h-[300px] flex flex-col justify-between"></div>
+        </div>
+
+        <!-- ================= SEKCE 2: AI SCAN & PRÁCA ================= -->
+        <div id="section-work" class="space-y-4 hidden">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Profesijná AI (Live Gemini)</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-blue-400 uppercase flex items-center gap-1.5"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i> Špecifická oblasť práce</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="job-sector" placeholder="Napr. Logistika, IT podpora..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                        <button onclick="fetchJobWords()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl font-medium transition-all">Generovať</button>
+                    </div>
+                </div>
+                <div class="space-y-2 border-t border-slate-800 pt-4">
+                    <label class="text-xs font-semibold text-indigo-400 uppercase flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Extraktor z textu / Fotoaparát</label>
+                    <textarea id="scan-text" rows="3" placeholder="Sem skopírujte text alebo článok..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+                    
+                    <div class="flex gap-2 pt-1">
+                        <label class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded-xl font-medium transition-all text-center cursor-pointer flex items-center justify-center gap-2">
+                            <i data-lucide="camera" class="w-4 h-4 text-indigo-400"></i> Odfotiť text / Vybrať foto
+                            <input type="file" id="camera-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        </label>
+                    </div>
+
+                    <button onclick="extractWordsFromText()" id="btn-extract" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-2.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2 mt-2"><i data-lucide="cpu" class="w-4 h-4"></i> Spustiť AI analýzu textu</button>
+                </div>
+            </div>
+            
+            <div id="ai-results" class="space-y-3 hidden">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Novo vygenerované slovíčka:</h3>
+                <div id="ai-words-list" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- ================= SEKCE 3: POROZUMENIE & DIALÓGY ================= -->
+        <div id="section-stories" class="space-y-4 hidden">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Komunikácia v praxi</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+                <button onclick="generateLiveStory()" id="btn-story" class="w-full bg-emerald-600 hover:bg-emerald-500 text-sm py-2.5 rounded-xl font-medium flex items-center justify-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> Vygenerovať novú situáciu cez Gemini</button>
+                <div id="story-display" class="hidden space-y-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <p id="story-text" class="text-base text-slate-200 leading-relaxed font-medium"></p>
+                        <div class="flex gap-2 pt-2 border-t border-slate-900">
+                            <button id="btn-speak-story" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Vypočuť si</button>
+                            <button id="btn-mic-story" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"><i data-lucide="mic" class="w-3.5 h-3.5"></i> Trénovať výslovnosť</button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Otázka na porozumenie textu:</p>
+                        <p id="story-question" class="text-sm font-medium"></p>
+                        <div id="story-options" class="space-y-2 pt-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SEKCE 4: IDIOMY ================= -->
+        <div id="section-idioms" class="space-y-4 hidden">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nedoslovné Frázy (Idiomy)</h2>
+            <div id="idiom-container" class="bg-gradient-to-b from-slate-900 to-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl min-h-[300px] flex flex-col justify-between"></div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800 px-3 py-3 flex justify-around max-w-md mx-auto rounded-t-2xl shadow-2xl z-50">
+        <button onclick="switchTab('words')" id="nav-words" class="flex flex-col items-center gap-1 text-blue-500 transition-all"><i data-lucide="layers" class="w-5 h-5"></i><span class="text-[9px] font-medium">Slovíčka</span></button>
+        <button onclick="switchTab('work')" id="nav-work" class="flex flex-col items-center gap-1 text-slate-500 transition-all"><i data-lucide="sparkles" class="w-5 h-5"></i><span class="text-[9px] font-medium">Práca Scan</span></button>
+        <button onclick="switchTab('stories')" id="nav-stories" class="flex flex-col items-center gap-1 text-slate-500 transition-all"><i data-lucide="message-square" class="w-5 h-5"></i><span class="text-[9px] font-medium">Komunikácia</span></button>
+        <button onclick="switchTab('idioms')" id="nav-idioms" class="flex flex-col items-center gap-1 text-slate-500 transition-all"><i data-lucide="help-circle" class="w-5 h-5"></i><span class="text-[9px] font-medium">Frázy</span></button>
+    </nav>
+
+    <script>
+        const GEMINI_API_KEY = "AQ.Ab8RN6IWnA8NVsuxSkEXEuqAtVJg40Vn62odBN4L5_iguAXWTA";
+
+        let wordsDatabase = [
+            { id: 1, word: "Procrastinate", translation: "Odkladať na neskôr", sentences: ["Don't procrastinate on your tasks.", "I always procrastinate when writing reports.", "Why do you procrastinate so much?"] },
+            { id: 2, word: "Implement", translation: "Zrealizovať / Zaviesť", sentences: ["We need to implement this feature.", "The company implemented new rules.", "How long will it take to implement?"] },
+            { id: 3, word: "Deadline", translation: "Termín / Uzávierka", sentences: ["The deadline is tomorrow.", "We cannot miss this deadline.", "She is working hard to meet the deadline."] }
+        ];
+
+        let idiomsDatabase = [
+            { id: 1, phrase: "Piece of cake", literal: "Kúsok koláča", actual: "Úplná hračka / Veľmi jednoduché", example: "The English test was a piece of cake." },
+            { id: 2, phrase: "Break a leg", literal: "Zlom nohu", actual: "Veľa šťastia! (najmä pred vystúpením)", example: "You have an interview today? Break a leg!" }
+        ];
+
+        let currentIndex = 0; let currentIdiomIndex = 0; let showSentences = false; let showIdiomDetails = false;
+        let masteredWords = JSON.parse(localStorage.getItem('masteredWords')) || [];
+
+        async function callGemini(promptText, base64Image = null) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            let parts = [{ text: promptText }];
+            if (base64Image) { parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Image } }); }
+            
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: parts }], generationConfig: { responseMimeType: "application/json" } })
+            });
+            const data = await response.json();
+            return JSON.parse(data.candidates.content.parts.text);
+        }
+
+        async function fetchJobWords() {
+            const sector = document.getElementById('job-sector').value; if(!sector) return alert("Zadajte oblasť.");
+            document.querySelector('#section-work button').innerText = "AI premýšľa...";
+            try {
+                const res = await callGemini(`Generate a JSON array of 3 professional expressions in "${sector}". Format: [{"word":"","translation":"","sentences":["","",""]}]. Strict JSON only.`);
+                appendNewWords(res);
+            } catch(e) { alert("Chyba prepojenia."); }
+            document.querySelector('#section-work button').innerText = "Generovať";
+        }
+
+        async function extractWordsFromText() {
+            const text = document.getElementById('scan-text').value; if(!text) return alert("Vložte text.");
+            document.getElementById('btn-extract').innerText = "Gemini analyzuje...";
+            try {
+                const res = await callGemini(`Extract 3 intermediate words from: ${text}. Format: [{"word":"","translation":"","sentences":["","",""]}]. Strict JSON only.`);
+                appendNewWords(res);
+            } catch(e) { alert("Chyba analýzy."); }
+            document.getElementById('btn-extract').innerText = "Spustiť AI analýzu textu";
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files; if (!file) return;
+            const reader = new FileReader(); document.getElementById('btn-extract').innerText = "Spracovávam fotku...";
+            reader.onload = async function(e) {
+                const base64Data = e.target.result.split(',');
+                try {
+                    const res = await callGemini(`Extract 3 useful expressions from this text image. Format: [{"word":"","translation":"","sentences":["","",""]}]. Strict JSON only.`, base64Data);
+                    appendNewWords(res);
+                    document.getElementById('scan-text').value = "[Text naskenovaný úspešne z fotografie]";
+                } catch(err) { alert("AI neprečítala fotku."); }
+                document.getElementById('btn-extract').innerText = "Spustiť AI analýzu textu";
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function appendNewWords(arr) {
+            const list = document.getElementById('ai-words-list'); document.getElementById('ai-results').classList.remove('hidden'); list.innerHTML = "";
+            arr.forEach(w => {
+                wordsDatabase.unshift({ id: Date.now()+Math.random(), word: w.word, translation: w.translation, sentences: w.sentences });
+                list.innerHTML += `<div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center"><div><p class="font-bold text-blue-400">${w.word}</p><p class="text-xs text-slate-400">${w.translation}</p></div></div>`;
+            });
+            renderCard();
+        }
+
+        async function generateLiveStory() {
+            document.getElementById('btn-story').innerText = "Gemini tvorí lekciu...";
+            try {
+                const res = await callGemini(`Create a short everyday English story (max 3 sentences) and 1 query testing comprehension. Format: {"story":"","question":"","options":[{"text":"","correct":true/false}]}. Strict JSON only.`);
+                document.getElementById('story-display').classList.remove('hidden');
+                document.getElementById('story-text').innerText = res.story;
+                document.getElementById('story-question').innerText = res.question;
+                document.getElementById('btn-speak-story').onclick = () => speak(res.story);
+                document.getElementById('btn-mic-story').onclick = () => startSpeechRecognition(res.story);
+                const optCont = document.getElementById('story-options'); optCont.innerHTML = "";
+                res.options.forEach(o => {
+                    const b = document.createElement('button'); b.className = "w-full text-left bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl text-xs"; b.innerText = o.text;
+                    b.onclick = () => b.className = o.correct ? "w-full text-left bg-emerald-950 border border-emerald-500 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-semibold" : "w-full text-left bg-rose-950 border border-rose-500 text-rose-400 px-4 py-2.5 rounded-xl text-xs opacity-60";
+                    optCont.appendChild(b);
+                });
+            } catch(e) { alert("Chyba príbehu."); }
+            document.getElementById('btn-story').innerText = "Vygenerovať novú situáciu cez Gemini";
+        }
+
+        function renderCard() {
+            const active = wordsDatabase.filter(w => !masteredWords.includes(w.id)); const container = document.getElementById('flashcard-container');
+            if (active.length === 0) { container.innerHTML = `<p class="text-center py-12 text-sm">Všetko naučené!</p>`; return; }
+            if (currentIndex >= active.length) currentIndex = 0; const cur = active[currentIndex];
+            container.innerHTML = `
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-blue-400 uppercase">Slovíčko</span>
+<button onclick="speak('${cur.word}')" class="text-slate-400 hover:text-white"><i data-lucide="volume-2" class="w-4 h-4"></i></button>
+</div>
+<h2 class="text-2xl font-bold tracking-tight">${cur.word}</h2>
+${showSentences ? `
+<div class="space-y-2 border-t border-slate-800 pt-2">
+<p class="text-sm font-semibold text-emerald-400">\${cur.translation}</p>
+<ul class="space-y-1 text-xs text-slate-400">
+\${cur.sentences.map(s => `<li>• ${s}</li>`).join('')}
+</ul>
+</div>
+` : ''}
+<div class="flex gap-2 pt-2 border-t border-slate-800">
+<button onclick="masteredWords.push(${cur.id}); localStorage.setItem('masteredWords', JSON.stringify(masteredWords)); lucide.createIcons(); renderCard();" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded font-medium transition-colors">Viem</button>
+<button onclick="showSentences=!showSentences; renderCard();" class="flex-1 bg-blue-600 hover:bg-blue-500 text-xs py-2 rounded font-medium transition-colors">${showSentences ? 'Skryť' : 'Ukázať'}</button>
+<button onclick="currentIndex++; showSentences=false; renderCard();" class="bg-slate-800 hover:bg-slate-700 p-2 rounded transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+</div>
+</div>
+`;
+lucide.createIcons();
+}
+
+function renderIdiomCard() {
+const container = document.getElementById('idiom-container'); if (!container) return;
+const cur = idiomsDatabase[currentIdiomIndex % idiomsDatabase.length];
+container.innerHTML = `
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-indigo-400 uppercase">Idiom</span>
+<button onclick="speak('${cur.phrase}')" class="text-slate-400 hover:text-white"><i data-lucide="volume-2" class="w-4 h-4"></i></button>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-indigo-300">${cur.phrase}</h2>
+<p class="text-xs italic text-slate-500">Doslovne: ${cur.literal}</p>
+${showIdiomDetails ? `
+<div class="space-y-1 border-t border-slate-800 pt-2 text-xs">
+<p class="font-semibold text-emerald-400">\${cur.actual}</p>
+<p class="text-slate-400 italic">" \${cur.example} "</p>
+</div>
+` : ''}
+<div class="flex gap-2 pt-2 border-t border-slate-800">
+<button onclick="showIdiomDetails=!showIdiomDetails; renderIdiomCard();" class="w-full bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded font-medium transition-colors">${showIdiomDetails ? 'Skryť význam' : 'Preložiť význam'}</button>
+<button onclick="currentIdiomIndex++; showIdiomDetails=false; renderIdiomCard();" class="bg-slate-800 hover:bg-slate-700 p-2 rounded transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+</div>
+</div>
+`;
+lucide.createIcons();
+}
+
+        function startSpeechRecognition(expectedText) { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) return alert("Mikrofón vyžaduje Safari na iPhone."); const recognition = new SpeechRecognition(); recognition.lang = 'en-US'; alert("🎤 Hovorte po kliknutí na OK."); recognition.start(); recognition.onresult = function(e) { alert(`AI počula: "${e.results.transcript}"`); }; }
+        function speak(t) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; window.speechSynthesis.speak(u); } }
+        function resetMastered() { masteredWords = []; localStorage.removeItem('masteredWords'); currentIndex = 0; renderCard(); }
+        function switchTab(section) { const tabs = ['words', 'work', 'stories', 'idioms']; tabs.forEach(t => document.getElementById(`section-${t}`).classList.toggle('hidden', t !== section)); tabs.forEach(t => document.getElementById(`nav-${t}`).className = t === section ? 'flex flex-col items-center gap-1 text-blue-500' : 'flex flex-col items-center gap-1 text-slate-500'); }
+        renderCard(); renderIdiomCard();
+    </script>
+</body>
+</html>
